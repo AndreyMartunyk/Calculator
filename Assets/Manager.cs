@@ -1,38 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
+using Assets.Scripts;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Manager : MonoBehaviour
 {
     public Text digitLabel;
-    public Text operatorLabel;
     public Text historyLabel; //todo: make it real
 
     bool errorDisplayed;    
-    bool displayValid;      // is some text already on the screen
+    bool displayValid;      
     bool specialAction;
     double currentVal;
     double storedVal;
     double result;
-    string storedOperator;
+    CalcButton storedOperator;
 
     void Start()
     {
-
-        
+        ClearCalc();
     }
 
-  
-    void Update()
+    private void ClearDigitScreen()
     {
-        
+        digitLabel.text = "0";
+        if (!displayValid)
+        {
+            ClearCalc();
+        }
     }
 
     private void ClearCalc()
     {
         digitLabel.text = "0";
-        operatorLabel.text = "";
         historyLabel.text = "";
         errorDisplayed = false;
         displayValid = false;
@@ -40,7 +40,7 @@ public class Manager : MonoBehaviour
         currentVal = 0;
         storedVal = 0;
         result = 0;
-        storedOperator = " ";
+        storedOperator = CalcButton.none;
     }
 
     private void UpdateDigitLabel()
@@ -52,23 +52,23 @@ public class Manager : MonoBehaviour
         displayValid = false;
     }
 
-    private void CalcResult(string operation)
+    private void CalcResult(CalcButton operation)
     {
         switch (operation)
         {
-            case "=":
+            case CalcButton.equal:
                 result = currentVal;
                 break;
-            case "+":
+            case CalcButton.plus:
                 result = storedVal + currentVal;
                 break;
-            case "-":
+            case CalcButton.minus:
                 result = storedVal - currentVal;
                 break;
-            case "x":
+            case CalcButton.multiply:
                 result = storedVal * currentVal;
                 break;
-            case "/":
+            case CalcButton.divide:
                 if (storedVal == 0)
                 {
                     errorDisplayed = true;
@@ -87,25 +87,20 @@ public class Manager : MonoBehaviour
         UpdateDigitLabel();
     }
 
-    private void AddToHistory(string str)
-    {
-        historyLabel.text += str;
-    }
-
-    public void ButtonTapped(string button)
+    public void ButtonTapped(CalcButton button)
     {
         if (errorDisplayed)
         {
             ClearCalc();
         }
 
-        if((button.ToCharArray()[0] >= '0' && button.ToCharArray()[0] <= '9') || button == ".")
+        if((button >= CalcButton.zero && button <= CalcButton.nine) || button == CalcButton.dot)
         {
             if(digitLabel.text.Length < 15 || !displayValid)
             {
                 if (!displayValid)
                 {
-                    if (button == '.')
+                    if (button == CalcButton.dot)
                     {
                         digitLabel.text = "0";
                     }
@@ -114,20 +109,97 @@ public class Manager : MonoBehaviour
                         digitLabel.text = "";
                     }
                 }
-                else if(digitLabel.text == "0" && button != '.')
+                else if (digitLabel.text == "0" && button != CalcButton.dot)
                 {
                     digitLabel.text = "";
                 }
 
-                digitLabel.text += button;
+                if (button != CalcButton.dot || !digitLabel.text.Contains(CalcButton.dot.ToCalcScreenString()))
+                {
+                    digitLabel.text += button.ToCalcScreenString();
+                }
+          
                 displayValid = true;
             }
-            else if (button == 'c')
-            {
-                ClearCalc();
-            }
-            else if(button == "ce")
+           
         }
+        else if (button == CalcButton.c)
+        {
+            ClearCalc();
+        }
+        else if (button == CalcButton.ce)
+        {
+            ClearDigitScreen();
+        }
+        else if (button == CalcButton.del)
+        {
+            if (digitLabel.text.Length > 0)
+            {
+                digitLabel.text = digitLabel.text.Remove(digitLabel.text.Length - 1);
+            }
+        }
+        else if (button == CalcButton.reverseSign)
+        {
+            currentVal = -double.Parse(digitLabel.text);
+            UpdateDigitLabel();
+            specialAction = true;
+        }
+        else if (button == CalcButton.persent)
+        {
+            currentVal = double.Parse(digitLabel.text) / 100.0 * storedVal;
+            historyLabel.text += currentVal.ToString();
+
+            UpdateDigitLabel();
+            specialAction = true;
+        }
+        else if (button == CalcButton.power)
+        {
+            currentVal = Math.Pow(double.Parse(digitLabel.text), 2);
+            UpdateDigitLabel();
+            specialAction = true;
+        }
+        else if (button == CalcButton.root)
+        {
+            currentVal = Math.Sqrt(double.Parse(digitLabel.text));
+            UpdateDigitLabel();
+            specialAction = true;
+        }
+        else if (button == CalcButton.dividedByOne)
+        {
+            currentVal = 1 / double.Parse(digitLabel.text);
+            UpdateDigitLabel();
+            specialAction = true;
+        }
+        else if (displayValid || storedOperator == CalcButton.equal || specialAction)
+        {
+            currentVal = double.Parse(digitLabel.text);
+            displayValid = false;
+            if (storedOperator != CalcButton.none)
+            {
+                historyLabel.text += currentVal.ToString();
+                CalcResult(storedOperator);
+                historyLabel.text += CalcButton.equal.ToCalcScreenString();
+                storedOperator = CalcButton.none;
+            }
+           
+            historyLabel.text += currentVal.ToString();
+            if (button != CalcButton.equal)
+            {
+                historyLabel.text += button.ToCalcScreenString();
+            }
+            //operatorLabel.text = button.ToCalcScreenString();
+            storedOperator = button;
+            storedVal = currentVal;
+            UpdateDigitLabel();
+            specialAction = false;
+        }
+
         
+        
+            
+        
+
     }
+
+   
 }
